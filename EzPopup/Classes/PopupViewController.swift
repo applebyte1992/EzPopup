@@ -18,7 +18,7 @@ public extension PopupViewControllerDelegate {
     func popupViewControllerDidDismissByTapGesture(_ sender: PopupViewController) {}
 }
 
-open class PopupViewController: UIViewController {
+public class PopupViewController: UIViewController {
     
     public enum PopupPosition {
         /// Align center X, center Y with offset param
@@ -47,46 +47,52 @@ open class PopupViewController: UIViewController {
         
         /// Right anchor, align center Y with right padding param
         case right(CGFloat)
-        
-        /// Top left offset to a view
-        case offsetFromView(CGPoint? = nil, UIView)
+    }
+    
+    public enum PopupAnimation {
+        case up
+        case down
     }
     
     /// Popup width, it's nil if width is determined by view's intrinsic size
-    private(set) open var popupWidth: CGFloat?
+    private(set) public var popupWidth: CGFloat?
     
     /// Popup height, it's nil if width is determined by view's intrinsic size
-    private(set) open var popupHeight: CGFloat?
+    private(set) public var popupHeight: CGFloat?
     
     /// Popup position, default is center
-    private(set) open var position: PopupPosition = .center(nil)
+    private(set) public var position: PopupPosition = .center(nil)
     
     /// Background alpha, default is 0.5
-    open var backgroundAlpha: CGFloat = 0.2
+    public var backgroundAlpha: CGFloat = 0.5
     
     /// Background color, default is black
-    open var backgroundColor = UIColor.label
+    public var backgroundColor = UIColor.black
     
     /// Allow tap outside popup to dismiss, default is true
-    open var canTapOutsideToDismiss = true
+    public var canTapOutsideToDismiss = true
     
     /// Corner radius, default is 0 (no rounded corner)
-    open var cornerRadius: CGFloat = 0
+    public var cornerRadius: CGFloat = 0
     
     /// Shadow enabled, default is true
-    open var shadowEnabled = true
+    public var shadowEnabled = true
     
     /// The pop up view controller. It's not mandatory.
-    private(set) open var contentController: UIViewController?
+    private(set) public var contentController: UIViewController?
     
     /// The pop up view
-    private(set) open var contentView: UIView?
+    private(set) public var contentView: UIView?
+    
+    /// Animation for popup
+    private(set) public var animation: PopupAnimation?
     
     /// The delegate to receive pop up event
-    open weak var delegate: PopupViewControllerDelegate?
+    public weak var delegate: PopupViewControllerDelegate?
     
     private var containerView = UIView()
-    private var isViewDidLayoutSubviewsCalled = false
+    private var topConstraint : NSLayoutConstraint?
+    private var bottomConstraint : NSLayoutConstraint?
     
     // MARK: -
     
@@ -103,14 +109,14 @@ open class PopupViewController: UIViewController {
         - popupWidth: Width of popup content. If it isn't set, width will be determine by popup content view intrinsic size.
         - popupHeight: Height of popup content. If it isn't set, height will be determine by popup content view intrinsic size.
      */
-    public init(contentController: UIViewController, position: PopupPosition = .center(nil), popupWidth: CGFloat?, popupHeight: CGFloat?) {
+    public init(contentController: UIViewController, position: PopupPosition = .center(nil), popupWidth: CGFloat? = nil, popupHeight: CGFloat? = nil , animation : PopupAnimation? = nil) {
         super.init(nibName: nil, bundle: nil)
         self.contentController = contentController
         self.contentView = contentController.view
         self.popupWidth = popupWidth
         self.popupHeight = popupHeight
         self.position = position
-        
+        self.animation = animation
         commonInit()
     }
     
@@ -122,13 +128,13 @@ open class PopupViewController: UIViewController {
          - popupWidth: Width of popup content. If it isn't set, width will be determine by popup content view intrinsic size.
          - popupHeight: Height of popup content. If it isn't set, height will be determine by popup content view intrinsic size.
      */
-    public init(contentView: UIView, position: PopupPosition = .center(nil), popupWidth: CGFloat?, popupHeight: CGFloat?) {
+    public init(contentView: UIView, position: PopupPosition = .center(nil), popupWidth: CGFloat? = nil, popupHeight: CGFloat? = nil, animation : PopupAnimation? = nil) {
         super.init(nibName: nil, bundle: nil)
         self.contentView = contentView
         self.popupWidth = popupWidth
         self.popupHeight = popupHeight
         self.position = position
-        
+        self.animation = animation
         commonInit()
     }
     
@@ -137,23 +143,12 @@ open class PopupViewController: UIViewController {
         modalTransitionStyle = .crossDissolve
     }
 
-    override open func viewDidLoad() {
+    override public func viewDidLoad() {
         super.viewDidLoad()
 
         setupUI()
+        setupViews()
         addDismissGesture()
-    }
-    
-    open override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        
-        if isViewDidLayoutSubviewsCalled == false {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.setupViews()
-            }
-        }
-        
-        isViewDidLayoutSubviewsCalled = true
     }
     
     // MARK: - Setup
@@ -176,9 +171,10 @@ open class PopupViewController: UIViewController {
         }
         
         if shadowEnabled {
-            containerView.layer.shadowOpacity = 0.2
-            containerView.layer.shadowColor = UIColor.label.cgColor
-            containerView.layer.shadowRadius = 3
+            containerView.layer.shadowOpacity = 0.5
+            containerView.layer.shadowColor = UIColor.black.cgColor
+            containerView.layer.shadowOffset = CGSize(width: 5, height: 5)
+            containerView.layer.shadowRadius = 5
         }
     }
     
@@ -192,17 +188,34 @@ open class PopupViewController: UIViewController {
         addPositionConstraints()
     }
     
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.1) {
+            self.handleAnimation()
+        }
+    }
+    
+    func handleAnimation() {
+        self.topConstraint?.constant = 0
+        self.bottomConstraint?.constant = 0
+        UIView.animate(withDuration: 0.2) {
+            self.view.layoutIfNeeded()
+        }
+    }
+
+    
     private func addViews() {
         view.addSubview(containerView)
         
         if let contentView = contentView {
             containerView.addSubview(contentView)
-            
-            let topConstraint = NSLayoutConstraint(item: contentView, attribute: .top, relatedBy: .equal, toItem: containerView, attribute: .top, multiplier: 1, constant: 0)
+            let topConstraint = NSLayoutConstraint(item: contentView, attribute: .top, relatedBy: .equal, toItem: containerView, attribute: .top, multiplier: 1, constant: self.animation == PopupAnimation.up ? contentView.bounds.height : 0)
             let leftConstraint = NSLayoutConstraint(item: contentView, attribute: .left, relatedBy: .equal, toItem: containerView, attribute: .left, multiplier: 1, constant: 0)
-            let bottomConstraint = NSLayoutConstraint(item: contentView, attribute: .bottom, relatedBy: .equal, toItem: containerView, attribute: .bottom, multiplier: 1, constant: 0)
+            let bottomConstraint = NSLayoutConstraint(item: contentView, attribute: .bottom, relatedBy: .equal, toItem: containerView, attribute: .bottom, multiplier: 1, constant: self.animation == PopupAnimation.down ? -contentView.bounds.height : 0)
             let rightConstraint = NSLayoutConstraint(item: contentView, attribute: .right, relatedBy: .equal, toItem: containerView, attribute: .right, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([topConstraint, leftConstraint, bottomConstraint, rightConstraint])
+            self.topConstraint = topConstraint
+            self.bottomConstraint = bottomConstraint
         }
     }
     
@@ -226,7 +239,7 @@ open class PopupViewController: UIViewController {
             addCenterPositionConstraints(offset: offset)
             
         case .topLeft(let offset):
-            addTopLeftPositionConstraints(offset: offset, anchorView: nil)
+            addTopLeftPositionConstraints(offset: offset)
             
         case .topRight(let offset):
             addTopRightPositionConstraints(offset: offset)
@@ -248,9 +261,6 @@ open class PopupViewController: UIViewController {
             
         case .right(let offset):
             addRightPositionConstraints(offset: offset)
-            
-        case .offsetFromView(let offset, let anchorView):
-            addTopLeftPositionConstraints(offset: offset, anchorView: anchorView)
         }
     }
     
@@ -260,16 +270,9 @@ open class PopupViewController: UIViewController {
         NSLayoutConstraint.activate([centerXConstraint, centerYConstraint])
     }
     
-    private func addTopLeftPositionConstraints(offset: CGPoint?, anchorView: UIView?) {
-        var position: CGPoint = offset ?? .zero
-        
-        if let anchorView = anchorView {
-            let anchorViewPosition = view.convert(CGPoint.zero, from: anchorView)
-            position = CGPoint(x: position.x + anchorViewPosition.x, y: position.y + anchorViewPosition.y)
-        }
-        
-        let topConstraint = NSLayoutConstraint(item: containerView, attribute: .top, relatedBy: .equal, toItem: view, attribute: .top, multiplier: 1, constant: position.y)
-        let leftConstraint = NSLayoutConstraint(item: containerView, attribute: .left, relatedBy: .equal, toItem: view, attribute: .left, multiplier: 1, constant: position.x)
+    private func addTopLeftPositionConstraints(offset: CGPoint?) {
+        let topConstraint = NSLayoutConstraint(item: containerView, attribute: .top, relatedBy: .equal, toItem: view, attribute: .top, multiplier: 1, constant: offset?.y ?? 0)
+        let leftConstraint = NSLayoutConstraint(item: containerView, attribute: .left, relatedBy: .equal, toItem: view, attribute: .left, multiplier: 1, constant: offset?.x ?? 0)
         NSLayoutConstraint.activate([topConstraint, leftConstraint])
     }
     

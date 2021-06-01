@@ -23,8 +23,7 @@ class MainViewController: UIViewController {
         
         customAlertVC.titleString = "Congratulation"
         customAlertVC.messageString = "You just showed a custom alert view controller."
-        
-        let popupVC = PopupViewController(contentController: customAlertVC, popupWidth: 300, popupHeight: nil)
+        let popupVC = PopupViewController(contentController: customAlertVC, popupWidth: 300, popupHeight: nil, animation : .down)
         popupVC.cornerRadius = 5
         popupVC.delegate = self
         present(popupVC, animated: true, completion: nil)
@@ -61,16 +60,16 @@ class MainViewController: UIViewController {
         
         pickerVC.delegate = self
         
-        let popupVC = PopupViewController(
-            contentController: pickerVC,
-            position: .offsetFromView(CGPoint(x: 0, y: bottomButton.frame.height + 3), bottomButton),
-            popupWidth: 100,
-            popupHeight: 200
-        )
-        
-        popupVC.canTapOutsideToDismiss = false
-        popupVC.cornerRadius = 5
-        present(popupVC, animated: true, completion: nil)
+//        let popupVC = PopupViewController(
+//            contentController: pickerVC,
+//            position: .offsetFromView(CGPoint(x: 0, y: bottomButton.frame.height + 3), bottomButton),
+//            popupWidth: 100,
+//            popupHeight: 200
+//        )
+//        
+//        popupVC.canTapOutsideToDismiss = false
+//        popupVC.cornerRadius = 5
+//        present(popupVC, animated: true, completion: nil)
     }
 }
 
