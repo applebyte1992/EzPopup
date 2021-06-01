@@ -109,7 +109,7 @@ public class PopupViewController: UIViewController {
         - popupWidth: Width of popup content. If it isn't set, width will be determine by popup content view intrinsic size.
         - popupHeight: Height of popup content. If it isn't set, height will be determine by popup content view intrinsic size.
      */
-    public init(contentController: UIViewController, position: PopupPosition = .center(nil), popupWidth: CGFloat? = nil, popupHeight: CGFloat? = nil , animation : PopupAnimation? = nil) {
+    public init(contentController: UIViewController, position: PopupPosition = .center(nil), popupWidth: CGFloat? = nil, popupHeight: CGFloat? = nil , animation : PopupAnimation? = nil, transitionStyle : UIModalTransitionStyle = .crossDissolve) {
         super.init(nibName: nil, bundle: nil)
         self.contentController = contentController
         self.contentView = contentController.view
@@ -117,7 +117,7 @@ public class PopupViewController: UIViewController {
         self.popupHeight = popupHeight
         self.position = position
         self.animation = animation
-        commonInit()
+        commonInit(transition: transitionStyle)
     }
     
     /**
@@ -128,19 +128,19 @@ public class PopupViewController: UIViewController {
          - popupWidth: Width of popup content. If it isn't set, width will be determine by popup content view intrinsic size.
          - popupHeight: Height of popup content. If it isn't set, height will be determine by popup content view intrinsic size.
      */
-    public init(contentView: UIView, position: PopupPosition = .center(nil), popupWidth: CGFloat? = nil, popupHeight: CGFloat? = nil, animation : PopupAnimation? = nil) {
+    public init(contentView: UIView, position: PopupPosition = .center(nil), popupWidth: CGFloat? = nil, popupHeight: CGFloat? = nil, animation : PopupAnimation? = nil , transitionStyle : UIModalTransitionStyle = .crossDissolve) {
         super.init(nibName: nil, bundle: nil)
         self.contentView = contentView
         self.popupWidth = popupWidth
         self.popupHeight = popupHeight
         self.position = position
         self.animation = animation
-        commonInit()
+        commonInit(transition: transitionStyle)
     }
     
-    private func commonInit() {
+    private func commonInit(transition : UIModalTransitionStyle) {
         modalPresentationStyle = .overFullScreen
-        modalTransitionStyle = .crossDissolve
+        modalTransitionStyle = transition
     }
 
     override public func viewDidLoad() {
